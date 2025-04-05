@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -22,9 +23,11 @@ export default function ListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadCategories();
+    }, [])
+  );
 
   const loadCategories = async () => {
     try {

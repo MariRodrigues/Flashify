@@ -14,6 +14,7 @@ type CSVRow = [string, string]; // [front, back]
 
 export const importCSV = async (fileUri: string, categoryName: string): Promise<ImportResult> => {
   try {
+    console.log('inicializando a importacao')
     // Read file content
     const fileContent = await FileSystem.readAsStringAsync(fileUri);
 
@@ -30,6 +31,7 @@ export const importCSV = async (fileUri: string, categoryName: string): Promise<
       };
     }
 
+    console.log('inicializando a importacao')
     // Validate CSV structure
     const invalidRows = parseResult.data.filter(row => !Array.isArray(row) || row.length !== 2);
     if (invalidRows.length > 0) {
@@ -40,6 +42,7 @@ export const importCSV = async (fileUri: string, categoryName: string): Promise<
     }
 
     // Create category
+    console.log('hora de criar a categoria')
     const category = await createCategory(categoryName);
     console.log('Category created:', category);
 

@@ -198,9 +198,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   cardContainer: {
-    width: '85%',
+    width: '95%',
     aspectRatio: 1,
-    maxHeight: '70%',
+    maxHeight: '90%',
   },
   card: {
     position: 'absolute',

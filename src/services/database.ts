@@ -17,8 +17,7 @@ export const initDatabase = async (): Promise<void> => {
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY NOT NULL,
       name TEXT NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
+      created_at TEXT NOT NULL
     );
   `);
 
@@ -39,16 +38,18 @@ export const initDatabase = async (): Promise<void> => {
 export const createCategory = async (name: string): Promise<Category> => {
   const db = await openDb();
   const id = Math.random().toString(36).substring(2, 15);
-  const now = new Date().toISOString();
+  const createdAt = new Date();
 
+  console.log('aqui')
   await db.runAsync(
-    'INSERT INTO categories (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)',
-    [id, name, now, now]
+    'INSERT INTO categories (id, name, created_at) VALUES (?, ?, ?)',
+    [id, name, createdAt.toString()]
   );
 
   return {
     id,
     name,
+    createdAt
   };
 };
 
@@ -87,7 +88,6 @@ export const getCategories = async (): Promise<CategoryWithCount[]> => {
     id: row.id,
     name: row.name,
     createdAt: new Date(row.created_at),
-    updatedAt: new Date(row.updated_at),
     flashcardCount: row.flashcard_count
   }));
 };

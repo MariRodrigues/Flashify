@@ -10,9 +10,7 @@ export interface Flashcard {
 export interface Category {
   id: string;
   name: string;
-  description?: string;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface StudySession {

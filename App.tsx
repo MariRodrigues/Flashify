@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -8,6 +8,7 @@ import ListScreen from './src/pages/ListScreen';
 import ImportScreen from './src/pages/ImportScreen';
 import StudyScreen from './src/pages/StudyScreen';
 import { Ionicons } from '@expo/vector-icons';
+import { initDatabase } from './src/services/database'
 
 export type RootStackParamList = {
   MainTabs: undefined;
@@ -72,6 +73,31 @@ function MainTabs() {
 }
 
 export default function App() {
+  const [isDbReady, setIsDbReady] = useState(false);
+
+  useEffect(() => {
+    const setup = async () => {
+      try {
+        console.log('🛠️ Inicializando banco...');
+        await initDatabase();
+        console.log('✅ Banco pronto!');
+        setIsDbReady(true);
+      } catch (e) {
+        console.error('❌ Erro ao iniciar banco:', e);
+      }
+    };
+
+    setup();
+  }, []);
+
+  if (!isDbReady) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#FF1493" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
@@ -98,5 +124,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

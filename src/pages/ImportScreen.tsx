@@ -30,8 +30,14 @@ export default function ImportScreen() {
 
       if (result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        await importCSV(file.uri, categoryName.trim());
-        Alert.alert('Sucesso', 'Flashcards importados com sucesso!');
+        const response = await importCSV(file.uri, categoryName.trim());
+
+        if (response.success){
+          Alert.alert('Sucesso', `${response.flashcardsCount} flashcards importados com sucesso!`);
+        } else {
+          Alert.alert('Erro!', `Erro ao criar deck`);
+        }
+        
         setCategoryName('');
       }
     } catch (error) {
