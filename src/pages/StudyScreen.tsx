@@ -9,19 +9,53 @@ import {
   Dimensions,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { getFlashcardsByCategory } from '../services/database';
 import { Flashcard } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path } from 'react-native-svg';
+import theme from '../theme';
 
 type StudyScreenParams = {
   categoryId: string;
   categoryName: string;
+  category: {
+    id: string;
+    name: string;
+    createdAt: string;
+    flashcardCount: number;
+  };
+};
+
+type RootStackParamList = {
+  DeckDetails: { category: { id: string; name: string; createdAt: string; flashcardCount: number } };
+  MainTabs: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const { width } = Dimensions.get('window');
+
+const WavyHeader = () => {
+  return (
+    <Svg
+      height="260"
+      width={width}
+      viewBox={`0 0 ${width} 260`}
+      style={styles.wavyHeader}
+    >
+      <Path
+        d={`M0 0h${width}v200c0 0-${width/2} 60-${width} 0V0z`}
+        fill={theme.colors.primary}
+      />
+    </Svg>
+  );
 };
 
 export default function StudyScreen() {
   const route = useRoute<RouteProp<Record<string, StudyScreenParams>, string>>();
-  const navigation = useNavigation();
-  const { categoryId, categoryName } = route.params;
+  const navigation = useNavigation<NavigationProp>();
+  const { categoryId, categoryName, category } = route.params;
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -78,80 +112,97 @@ export default function StudyScreen() {
     outputRange: ['180deg', '360deg'],
   });
 
+  const handleBackPress = () => {
+    navigation.navigate('DeckDetails', { category });
+  };
+
   if (flashcards.length === 0) {
     return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.emptyText}>
+      <View style={styles.container}>
+        <WavyHeader />
+        <Text style={[styles.emptyText, { color: theme.colors.grayDark }]}>
           Nenhum flashcard encontrado nesta categoria.
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
   const currentCard = flashcards[currentIndex];
+  const progress = ((currentIndex + 1) / flashcards.length) * 100;
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.title}>{categoryName}</Text>
-          <Text style={styles.progress}>
-            {currentIndex + 1}/{flashcards.length}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="close" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.cardWrapper}>
-        <TouchableOpacity onPress={flipCard} activeOpacity={1}>
-          <View style={styles.cardContainer}>
-            <Animated.View
-              style={[
-                styles.card,
-                styles.cardFront,
-                { transform: [{ rotateY: frontInterpolate }] },
-              ]}
-            >
-              <Text style={styles.cardText}>{currentCard.front}</Text>
-            </Animated.View>
-            <Animated.View
-              style={[
-                styles.card,
-                styles.cardBack,
-                { transform: [{ rotateY: backInterpolate }] },
-              ]}
-            >
-              <Text style={styles.cardText}>{currentCard.back}</Text>
-            </Animated.View>
+      <WavyHeader />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={handleBackPress}
+          >
+            <Ionicons name="arrow-back" size={24} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.title}>{categoryName}</Text>
           </View>
-        </TouchableOpacity>
-      </View>
+        </View>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[styles.navButton, currentIndex === 0 && styles.buttonDisabled]}
-          onPress={previousCard}
-          disabled={currentIndex === 0}
-        >
-          <Ionicons name="chevron-back" size={24} color={currentIndex === 0 ? "#ccc" : "#fff"} />
-        </TouchableOpacity>
+        <View style={styles.studyContent}>
+          <View style={styles.progressContainer}>
+            <Text style={styles.progressText}>
+              {currentIndex + 1} de {flashcards.length}
+            </Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+            </View>
+          </View>
 
-        <TouchableOpacity style={styles.flipButton} onPress={flipCard}>
-          <Text style={styles.flipButtonText}>VIRAR CARTÃO</Text>
-        </TouchableOpacity>
+          <View style={styles.cardWrapper}>
+            <TouchableOpacity onPress={flipCard} activeOpacity={1}>
+              <View style={styles.cardContainer}>
+                <Animated.View
+                  style={[
+                    styles.card,
+                    styles.cardFront,
+                    { transform: [{ rotateY: frontInterpolate }], backgroundColor: theme.colors.cardBackground },
+                  ]}
+                >
+                  <Text style={[styles.cardText, { color: theme.colors.grayDarker }]}>{currentCard.front}</Text>
+                </Animated.View>
+                <Animated.View
+                  style={[
+                    styles.card,
+                    styles.cardBack,
+                    { transform: [{ rotateY: backInterpolate }], backgroundColor: theme.colors.cardBackground },
+                  ]}
+                >
+                  <Text style={[styles.cardText, { color: theme.colors.grayDarker }]}>{currentCard.back}</Text>
+                </Animated.View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-        <TouchableOpacity
-          style={[styles.navButton, currentIndex === flashcards.length - 1 && styles.buttonDisabled]}
-          onPress={nextCard}
-          disabled={currentIndex === flashcards.length - 1}
-        >
-          <Ionicons name="chevron-forward" size={24} color={currentIndex === flashcards.length - 1 ? "#ccc" : "#fff"} />
-        </TouchableOpacity>
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.navButton, currentIndex === 0 && styles.buttonDisabled]}
+            onPress={previousCard}
+            disabled={currentIndex === 0}
+          >
+            <Ionicons name="chevron-back" size={24} color={currentIndex === 0 ? theme.colors.grayDark : theme.colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.flipButton, { backgroundColor: theme.colors.primary }]} onPress={flipCard}>
+            <Text style={[styles.flipButtonText, { color: theme.colors.white }]}>VIRAR</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.navButton, currentIndex === flashcards.length - 1 && styles.buttonDisabled]}
+            onPress={nextCard}
+            disabled={currentIndex === flashcards.length - 1}
+          >
+            <Ionicons name="chevron-forward" size={24} color={currentIndex === flashcards.length - 1 ? theme.colors.grayDark : theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -160,74 +211,91 @@ export default function StudyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FF1493',
+    backgroundColor: theme.colors.lightBackground,
+  },
+  wavyHeader: {
+    position: 'absolute',
+    top: 0,
+  },
+  content: {
+    flex: 1,
+    paddingTop: 60,
   },
   header: {
-    padding: 16,
-    paddingTop: 32,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: 16,
+    padding: 8,
   },
   headerContent: {
     flex: 1,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 16,
-  },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 4,
+    color: 'white',
   },
-  progress: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+  studyContent: {
+    flex: 1,
+    padding: 16,
+  },
+  progressContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+    gap: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    width: '85%',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: 4,
+  },
+  progressText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '500',
   },
   cardWrapper: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
   },
   cardContainer: {
-    width: '95%',
-    aspectRatio: 1,
-    maxHeight: '90%',
+    width: '85%',
+    aspectRatio: 0.85,
   },
   card: {
     position: 'absolute',
     width: '100%',
     height: '100%',
+    backfaceVisibility: 'hidden',
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backfaceVisibility: 'hidden',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   cardFront: {
-    backgroundColor: '#fff',
-    zIndex: 2,
   },
   cardBack: {
-    backgroundColor: '#fff',
-    zIndex: 1,
+    backgroundColor: '#babef7',
   },
   cardText: {
-    fontSize: 32,
-    color: '#333',
+    fontSize: 22,
     textAlign: 'center',
   },
   footer: {
@@ -235,34 +303,41 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 32,
   },
   navButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: theme.colors.lightBackground,
     alignItems: 'center',
     justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   buttonDisabled: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: theme.colors.lightBackground,
   },
   flipButton: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 24,
+    paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 24,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   flipButtonText: {
-    color: '#FF1493',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#fff',
     textAlign: 'center',
-    marginTop: 32,
+    marginTop: 200,
+    fontSize: 16,
   },
 });

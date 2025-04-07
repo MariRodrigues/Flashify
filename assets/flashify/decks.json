@@ -1,0 +1,44 @@
+[
+    {
+        "id": "deck001",
+        "title": "Inglês para Viagem",
+        "description": "Frases essenciais para se comunicar durante uma viagem: no aeroporto, hotel, restaurante, dia a dia, etc.",
+        "language": "en",
+        "level": "iniciante",
+        "sections": [
+            {
+                "title": "Aeroporto",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1n8m_m7IjDn1rO6dbBjZ34fzmBbtjkfUS"
+            },
+            {
+                "title": "Dia a dia",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1HqwixI3FZsFO2bVitVzkB9IM4DvzRsWQ"
+            }
+        ]
+    },
+    {
+        "id": "deck002",
+        "title": "Trabalho em tecnologia (para devs)",
+        "description": "Explore vocabulário e expressões úteis do mundo da tecnologia para participar de reuniões, discutir projetos e se comunicar no dia a dia como dev.",
+        "language": "en",
+        "level": "intermediário",
+        "sections": [
+            {
+                "title": "Sobre projetos",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1OOaYhcV9GghFL3wg-Etky7c7uKuf8QDk"
+            },
+            {
+                "title": "Dia a dia",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1OoVFaB6mBVwip1LEDcuCi8wPYYsKRZ6J"
+            },
+            {
+                "title": "Tarefas e projetos",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1tFDp0f7A4Xxg0KyIX2aUN8FHWNHX78Pw"
+            },
+            {
+                "title": "Reuniões (daily)",
+                "csvUrl": "https://drive.google.com/uc?export=download&id=1GupqSfCLgKQrh0sRsLM-rHLEi3sxqVFZ"
+            }
+        ]
+    }
+]

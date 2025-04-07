@@ -1,0 +1,9 @@
+{
+  "common": {
+    "study": "Study",
+    "list": "List",
+    "settings": "Settings",
+    "decks": "Decks",
+    "cards": "Cards"
+  }
+}

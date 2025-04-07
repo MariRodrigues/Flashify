@@ -12,16 +12,33 @@ import { useNavigation } from '@react-navigation/native';
 import { getCategories, CategoryWithCount } from '../services/database';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import theme from '../theme';
 
 type RootStackParamList = {
   Study: { categoryId: string; categoryName: string };
+  DeckDetails: { category: CategoryWithCount };
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Study'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [categories, setCategories] = useState<CategoryWithCount[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadCategories = async () => {
+    if (isLoading) return;
+    
+    try {
+      setIsLoading(true);
+      const result = await getCategories();
+      setCategories(result);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -29,41 +46,47 @@ export default function ListScreen() {
     }, [])
   );
 
-  const loadCategories = async () => {
-    try {
-      const result = await getCategories();
-      setCategories(result);
-    } catch (error) {
-      console.error('Error loading categories:', error);
-    }
+  const handleCategoryPress = (category: CategoryWithCount) => {
+    navigation.navigate('DeckDetails', { category });
   };
 
-  const handleCategoryPress = (categoryId: string, categoryName: string) => {
+  const handleStudyPress = (categoryId: string, categoryName: string, e: any) => {
+    e.stopPropagation();
     navigation.navigate('Study', { categoryId, categoryName });
   };
 
   const renderCategoryCard = ({ item }: { item: CategoryWithCount }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => handleCategoryPress(item.id, item.name)}
+      onPress={() => handleCategoryPress(item)}
     >
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardCount}>
-          {item.flashcardCount} {item.flashcardCount === 1 ? 'flashcard' : 'flashcards'}
+        <Text style={styles.cardSubtitle}>
+          {item.flashcardCount} {item.flashcardCount === 1 ? 'card' : 'cards'}
         </Text>
       </View>
-      <View style={styles.cardArrow}>
-        <Ionicons name="chevron-forward" size={24} color="#FF1493" />
-      </View>
+      <TouchableOpacity
+        style={styles.studyButton}
+        onPress={(e) => handleStudyPress(item.id, item.name, e)}
+      >
+        <Ionicons name="play-forward-outline" size={24} color={theme.colors.white} />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
   return (
     <SafeAreaView style={styles.container}>
-      {categories.length === 0 ? (
+      {isLoading ? (
         <View style={styles.emptyState}>
-          <Ionicons name="folder-open-outline" size={64} color="rgba(255, 20, 147, 0.2)" />
+          <Ionicons name="folder-open-outline" size={64} color={theme.colors.primary} />
+          <Text style={styles.emptyText}>
+            Carregando categorias...
+          </Text>
+        </View>
+      ) : categories.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="folder-open-outline" size={64} color={theme.colors.primary} />
           <Text style={styles.emptyText}>
             Nenhuma categoria encontrada.{'\n'}
             Importe seus flashcards primeiro!
@@ -84,13 +107,13 @@ export default function ListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   list: {
     padding: 16,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
     borderRadius: 16,
     marginBottom: 12,
     padding: 16,
@@ -108,15 +131,19 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: theme.colors.grayDark,
     marginBottom: 4,
   },
-  cardCount: {
+  cardSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: theme.colors.grayDarker,
   },
-  cardArrow: {
-    marginLeft: 8,
+  studyButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     flex: 1,

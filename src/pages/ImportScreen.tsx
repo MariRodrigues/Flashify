@@ -11,6 +11,7 @@ import {
 import * as DocumentPicker from 'expo-document-picker';
 import { importCSV } from '../services/import';
 import { Ionicons } from '@expo/vector-icons';
+import theme from '../theme';
 
 export default function ImportScreen() {
   const [importing, setImporting] = useState(false);
@@ -52,7 +53,7 @@ export default function ImportScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="cloud-upload-outline" size={64} color="#FF1493" />
+          <Ionicons name="cloud-upload-outline" size={64} color={theme.colors.primary} />
         </View>
 
         <Text style={styles.description}>
@@ -86,17 +87,17 @@ export default function ImportScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.background,
   },
   header: {
-    backgroundColor: '#FF1493',
+    backgroundColor: theme.colors.primary,
     padding: 16,
     paddingTop: 8,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: theme.colors.white,
   },
   content: {
     flex: 1,
@@ -107,14 +108,14 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 20, 147, 0.1)',
+    backgroundColor: theme.colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 24,
   },
   description: {
     fontSize: 16,
-    color: '#666',
+    color: theme.colors.grayDarker,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   button: {
-    backgroundColor: '#FF1493',
+    backgroundColor: theme.colors.primary,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -137,10 +138,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#ffb6c1',
+    backgroundColor: theme.colors.primaryLight,
   },
   buttonText: {
-    color: '#fff',
+    color: theme.colors.white,
     fontSize: 16,
     fontWeight: 'bold',
   },
