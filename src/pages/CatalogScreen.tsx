@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tag: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: theme.colors.lightBackground,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,

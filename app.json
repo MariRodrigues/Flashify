@@ -2,7 +2,7 @@
   "expo": {
     "name": "flashify",
     "slug": "flashify",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/flashify.png",
     "userInterfaceStyle": "light",
@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/flashify.png",
         "backgroundColor": "#ffffff"

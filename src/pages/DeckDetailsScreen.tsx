@@ -1,42 +1,21 @@
-import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   FlatList,
   Alert,
   Platform,
   SafeAreaView,
-  Dimensions
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { Category, Flashcard } from '../types';
 import { getFlashcardsByCategory, deleteCategory } from '../services/database';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { getCategoryStats } from '../services/studyService';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme';
-import Svg, { Path } from 'react-native-svg';
-
-const { width } = Dimensions.get('window');
-
-const WavyHeader = () => {
-  return (
-    <Svg
-      height="260"
-      width={width}
-      viewBox={`0 0 ${width} 260`}
-      style={styles.wavyHeader}
-    >
-      <Path
-        d={`M0 0h${width}v200c0 0-${width/2} 60-${width} 0V0z`}
-        fill={theme.colors.primary}
-      />
-    </Svg>
-  );
-};
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -55,14 +34,29 @@ export default function DeckDetailsScreen() {
   const route = useRoute();
   const { category } = route.params as RouteParams;
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [stats, setStats] = useState({
+    notStudied: 0,
+    pendingReview: 0,
+    totalCards: 0
+  });
 
   useEffect(() => {
-    loadFlashcards();
-    // Esconde a barra de navegação
     navigation.setOptions({
       headerShown: false
     });
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFlashcards();
+      loadStats();
+    }, [])
+  );
+
+  const loadStats = async () => {
+    const categoryStats = await getCategoryStats(category.id);
+    setStats(categoryStats);
+  };
 
   const loadFlashcards = async () => {
     const cards = await getFlashcardsByCategory(category.id);
@@ -70,7 +64,7 @@ export default function DeckDetailsScreen() {
   };
 
   const handleStudyPress = () => {
-    navigation.navigate('Study', { 
+    navigation.navigate('Study', {
       categoryId: category.id,
       categoryName: category.name,
       category: category
@@ -95,7 +89,12 @@ export default function DeckDetailsScreen() {
           onPress: async () => {
             try {
               await deleteCategory(category.id);
-              navigation.navigate('MainTabs');
+              // Verifica se consegue voltar antes de navegar
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('MainTabs');
+              }
             } catch (error) {
               Alert.alert('Erro', 'Não foi possível deletar o deck. Tente novamente.');
             }
@@ -106,51 +105,65 @@ export default function DeckDetailsScreen() {
     );
   };
 
-  const renderCard = ({ item }: { item: Flashcard }) => (
-    <View style={styles.cardItem}>
-      <Text style={styles.cardFront}>{item.front}</Text>
-      <Text style={styles.cardBack}>{item.back}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <WavyHeader />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>{category.name}</Text>
+        <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton}>
+          <Ionicons name="trash-outline" size={24} color={theme.colors.error} />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.content}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.title}>{category.name}</Text>
-            <View style={styles.infoContainer}>
-              <Text style={styles.info}>
-                {category.flashcardCount} {category.flashcardCount === 1 ? 'card' : 'cards'}
-              </Text>
-              <Text style={styles.info}>
-                Criado em {format(category.createdAt, "dd 'de' MMMM',' yyyy", { locale: ptBR } as any)}
-              </Text>
+        <View style={styles.statsContainer}>
+          <View style={styles.statCircle}>
+            <Text style={styles.statNumber}>{stats.notStudied}</Text>
+            <Text style={styles.statLabel}>Pendentes</Text>
+          </View>
+
+          <View style={styles.statsDetails}>
+            <View style={styles.statRow}>
+              <Ionicons name="book-outline" size={20} color={theme.colors.primary} />
+              <Text style={styles.statText}>{stats.notStudied} não estudados</Text>
+            </View>
+            <View style={styles.statRow}>
+              <Ionicons name="refresh-outline" size={20} color={'#cca63f'} />
+              <Text style={styles.statText}>{stats.pendingReview} para revisar</Text>
             </View>
           </View>
-          <TouchableOpacity onPress={handleDeletePress} style={styles.deleteButton}>
-            <Ionicons name="trash-outline" size={24} color="white" />
-          </TouchableOpacity>
         </View>
 
+        <TouchableOpacity
+          style={[
+            styles.studyButton,
+            (!stats.notStudied && !stats.pendingReview) && styles.studyButtonDisabled
+          ]}
+          onPress={handleStudyPress}
+          disabled={!stats.notStudied && !stats.pendingReview}
+        >
+          <Text style={styles.studyButtonText}>
+            {!stats.notStudied && !stats.pendingReview
+              ? 'Parabéns! Você estudou todos os cards'
+              : 'Estudar cards'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionTitle}>Cards no deck ({stats.totalCards} no total)</Text>
         <FlatList
           data={flashcards}
-          renderItem={renderCard}
+          renderItem={({ item }) => (
+            <View style={styles.cardItem}>
+              <Text style={styles.cardFrontText}>{item.front}</Text>
+              <Text style={styles.cardBackText}>{item.back}</Text>
+            </View>
+          )}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.cardList}
         />
       </View>
-
-      <TouchableOpacity 
-        style={styles.studyButton} 
-        onPress={handleStudyPress}
-      >
-        <Text style={styles.buttonText}>Estudar</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -158,90 +171,128 @@ export default function DeckDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.lightBackground,
+    backgroundColor: theme.colors.gray,
   },
-  wavyHeader: {
-    position: 'absolute',
-    top: 0,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 40 : 0,
+    paddingBottom: 16,
+    backgroundColor: theme.colors.white,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   content: {
     flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    padding: 16,
   },
   backButton: {
-    marginRight: 16,
     padding: 8,
   },
   deleteButton: {
     padding: 8,
   },
-  headerContent: {
-    flex: 1,
-  },
   title: {
-    fontSize: 24,
+    flex: 1,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 8,
+    color: theme.colors.text,
+    marginHorizontal: 16,
+    textAlign: 'center',
   },
-  infoContainer: {
+  statsContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: theme.colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  statCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  statsDetails: {
+    flex: 1,
+    justifyContent: 'center',
     gap: 8,
   },
-  info: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: theme.colors.primary,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: theme.colors.grayDark,
+  },
+  statText: {
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.colors.text,
+    marginBottom: 16,
+  },
+  studyButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  studyButtonDisabled: {
+    backgroundColor: theme.colors.grayDark,
+  },
+  studyButtonText: {
+    color: theme.colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   cardList: {
-    padding: 16,
-    paddingBottom: 90,
+    paddingBottom: 16,
   },
   cardItem: {
-    backgroundColor: 'white',
-    borderRadius: 8,
+    backgroundColor: theme.colors.white,
     padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 2,
   },
-  cardFront: {
+  cardFrontText: {
     fontSize: 16,
-    fontWeight: '500',
+    color: theme.colors.text,
     marginBottom: 8,
   },
-  cardBack: {
+  cardBackText: {
     fontSize: 14,
-    color: '#666',
-  },
-  studyButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(51, 36, 146, 0.95)',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
+    color: theme.colors.grayDark,
+    fontStyle: 'italic',
   },
 });

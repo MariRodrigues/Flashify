@@ -7,9 +7,10 @@ export const theme = {
     grayDark: '#666666',
     grayDarker: '#333333',
     background: '#FFFFFF',
-    cardBackground: '#FFFFFF',
-    lightBackground: '#F5F5F5',
-    error: '#DC3545'
+    cardBackground: '#F6F6F6',
+    lightBackground: '#F6F6F6',
+    error: '#DC3545',
+    text: '#212121'
   }
 };
 

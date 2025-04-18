@@ -51,6 +51,19 @@ export const initDatabase = async () => {
     );
   `);
 
+  await db.runAsync(`
+    CREATE TABLE IF NOT EXISTS study_feedback (
+      id TEXT PRIMARY KEY NOT NULL,
+      category_id TEXT NOT NULL,
+      flashcard_id TEXT NOT NULL,
+      feedback TEXT NOT NULL,
+      answered_at TEXT NOT NULL,
+      next_review TEXT NOT NULL,
+      FOREIGN KEY (flashcard_id) REFERENCES flashcards(id) ON DELETE CASCADE,
+      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+    );
+  `);
+
   // Depois verifica se precisa adicionar a coluna deck_id
   const tableInfo = await db.getAllAsync('PRAGMA table_info(categories)');
   const hasDeckIdColumn = tableInfo.some((column: any) => column.name === 'deck_id');
