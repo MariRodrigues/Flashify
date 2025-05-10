@@ -30,10 +30,6 @@ export default function OptionsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Opções</Text>
-      </View>
-
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Conta</Text>
@@ -76,7 +72,7 @@ export default function OptionsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Sobre</Text>
           <Text style={styles.versionText}>Flashify v1.0.0</Text>
-          <Text style={styles.copyrightText}>© 2025 Flashify. Todos os direitos reservados.</Text>
+          <Text style={styles.copyrightText}> 2025 Flashify. Todos os direitos reservados.</Text>
         </View>
         
         <View style={styles.comingSoonSection}>
@@ -95,7 +91,7 @@ export default function OptionsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.lightBackground,
   },
   header: {
     paddingTop: Platform.OS === 'android' ? 40 : 0,

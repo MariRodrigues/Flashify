@@ -7,138 +7,105 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme';
-import { isSectionDownloaded, saveDeckSection } from '../services/database';
-
-type Section = {
-  title: string;
-  csvUrl: string;
-  isDownloaded?: boolean;
-  isDownloading?: boolean;
-};
-
-type Deck = {
-  id: string;
-  title: string;
-  description: string;
-  language: string;
-  level: string;
-  sections: Section[];
-};
+import { getPublicCategories, PublicCategory } from '../services/publicDeckService';
 
 export default function CatalogScreen() {
-  const [decks, setDecks] = useState<Deck[]>([]);
+  const [categories, setCategories] = useState<PublicCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadDecks();
+    loadCategories();
   }, []);
 
-  const loadDecks = async () => {
+  const loadCategories = async () => {
     try {
-      const decksData = require('../../assets/flashify/decks.json');
-      
-      // Verifica quais seções já foram baixadas
-      const decksWithStatus = await Promise.all(
-        decksData.map(async (deck: Deck) => ({
-          ...deck,
-          sections: await Promise.all(
-            deck.sections.map(async (section) => ({
-              ...section,
-              isDownloaded: await isSectionDownloaded(deck.id, section.title),
-              isDownloading: false,
-            }))
-          ),
-        }))
-      );
-      
-      setDecks(decksWithStatus);
+      setIsLoading(true);
+      setError(null);
+      const response = await getPublicCategories();
+      setCategories(response.items);
     } catch (error) {
-      console.error('Erro ao carregar decks:', error);
+      console.error('Erro ao carregar categorias:', error);
+      setError('Não foi possível carregar as categorias. Tente novamente.');
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const handleDownload = async (deckId: string, deckTitle: string, sectionIndex: number) => {
-    try {
-      const deckIndex = decks.findIndex(d => d.id === deckId);
-      const updatedDecks = [...decks];
-      
-      // Marca como downloading
-      updatedDecks[deckIndex].sections[sectionIndex].isDownloading = true;
-      setDecks(updatedDecks);
-
-      // Faz o download
-      await saveDeckSection(
-        deckId,
-        deckTitle,
-        updatedDecks[deckIndex].sections[sectionIndex]
-      );
-
-      // Atualiza o status
-      updatedDecks[deckIndex].sections[sectionIndex].isDownloading = false;
-      updatedDecks[deckIndex].sections[sectionIndex].isDownloaded = true;
-      setDecks(updatedDecks);
-
-      Alert.alert('Sucesso', 'Seção baixada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao baixar seção:', error);
-      Alert.alert('Erro', 'Não foi possível baixar a seção. Tente novamente.');
-      
-      // Remove o status de downloading em caso de erro
-      const deckIndex = decks.findIndex(d => d.id === deckId);
-      const updatedDecks = [...decks];
-      updatedDecks[deckIndex].sections[sectionIndex].isDownloading = false;
-      setDecks(updatedDecks);
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadCategories();
   };
 
-  const renderDeck = (deck: Deck) => (
-    <View key={deck.id} style={styles.deckCard}>
-      <View style={styles.deckHeader}>
-        <Text style={styles.deckTitle}>{deck.title}</Text>
-        <View style={styles.tagContainer}>
-          <Text style={styles.tag}>{deck.language.toUpperCase()}</Text>
-          <Text style={styles.tag}>{deck.level}</Text>
-        </View>
+  const handleCategoryPress = (category: PublicCategory) => {
+    // Por enquanto, apenas mostramos um alerta informando que esta funcionalidade está em desenvolvimento
+    Alert.alert(
+      'Em desenvolvimento',
+      `Os decks da categoria "${category.name}" estarão disponíveis em breve!`,
+      [{ text: 'OK', style: 'default' }]
+    );
+  };
+
+  const renderCategory = (category: PublicCategory) => (
+    <TouchableOpacity 
+      key={category.id} 
+      style={styles.categoryCard}
+      onPress={() => handleCategoryPress(category)}
+    >
+      <View style={styles.categoryHeader}>
+        <Text style={styles.categoryTitle}>{category.name}</Text>
       </View>
       
-      <Text style={styles.description}>{deck.description}</Text>
+      <Text style={styles.description}>{category.description}</Text>
       
-      <View style={styles.sectionsContainer}>
-        {deck.sections.map((section, index) => (
-          <View key={index} style={styles.sectionItem}>
-            <View style={styles.sectionInfo}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-            </View>
-            <TouchableOpacity 
-              style={[
-                styles.downloadButton,
-                section.isDownloaded && styles.downloadButtonDisabled
-              ]}
-              onPress={() => !section.isDownloaded && !section.isDownloading && handleDownload(deck.id, deck.title, index)}
-              disabled={section.isDownloaded || section.isDownloading}
-            >
-              {section.isDownloading ? (
-                <ActivityIndicator size="small" color={theme.colors.primary} />
-              ) : (
-                <Ionicons 
-                  name={section.isDownloaded ? "checkmark-circle" : "download-outline"} 
-                  size={24} 
-                  color={section.isDownloaded ? theme.colors.primary : theme.colors.primary} 
-                />
-              )}
-            </TouchableOpacity>
-          </View>
-        ))}
+      <View style={styles.categoryFooter}>
+        <Ionicons name="chevron-forward" size={20} color={theme.colors.primary} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.subheader}>Decks prontos para você estudar</Text>
-      {decks.map(renderDeck)}
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+        />
+      }
+    >
+      {isLoading && !refreshing ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <Text style={styles.loadingText}>Carregando categorias...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color={theme.colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
+            <Text style={styles.retryButtonText}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : categories.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="folder-open-outline" size={48} color={theme.colors.grayLight} />
+          <Text style={styles.emptyText}>Nenhuma categoria disponível no momento.</Text>
+        </View>
+      ) : (
+        <>
+          <Text style={styles.subheader}>Categorias disponíveis</Text>
+          {categories.map(renderCategory)}
+        </>
+      )}
     </ScrollView>
   );
 }
@@ -150,81 +117,90 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   header: {
+    marginBottom: 24,
+  },
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: theme.colors.grayDarker,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: theme.colors.grayDark,
   },
   subheader: {
-    fontSize: 16,
-    color: theme.colors.grayDark,
-    marginBottom: 24,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: theme.colors.grayDarker,
+    marginBottom: 16,
   },
-  deckCard: {
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    color: theme.colors.grayDark,
+    fontSize: 16,
+  },
+  errorContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 16,
+    color: theme.colors.error,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: theme.colors.white,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    marginTop: 16,
+    color: theme.colors.grayDark,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  categoryCard: {
     backgroundColor: theme.colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
-  deckHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+  categoryHeader: {
     marginBottom: 8,
   },
-  deckTitle: {
+  categoryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: theme.colors.grayDarker,
-    flex: 1,
-    marginRight: 8,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  tag: {
-    backgroundColor: theme.colors.lightBackground,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    fontSize: 12,
-    color: theme.colors.primary,
-    fontWeight: '500',
   },
   description: {
     fontSize: 14,
     color: theme.colors.grayDark,
     marginBottom: 16,
+    lineHeight: 20,
   },
-  sectionsContainer: {
-    gap: 12,
-  },
-  sectionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.lightBackground,
-    padding: 12,
-    borderRadius: 8,
-  },
-  sectionInfo: {
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    color: theme.colors.grayDarker,
-    fontWeight: '500',
-  },
-  downloadButton: {
-    padding: 8,
-  },
-  downloadButtonDisabled: {
-    opacity: 0.5,
+  categoryFooter: {
+    alignItems: 'flex-end',
   },
 });
