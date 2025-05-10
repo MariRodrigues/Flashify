@@ -9,32 +9,34 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getCategories, CategoryWithCount } from '../services/database';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme';
+import { getMyDecks, Deck, DeckListResponse } from '../services/deckService';
 
 type RootStackParamList = {
-  Study: { categoryId: string; categoryName: string };
-  DeckDetails: { category: CategoryWithCount };
+  Study: { deckId: number; deckName: string };
+  DeckDetails: { deck: Deck };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ListScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [categories, setCategories] = useState<CategoryWithCount[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [deckResponse, setDeckResponse] = useState<DeckListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const loadCategories = async () => {
+  const loadDecks = async () => {
     if (isLoading) return;
     
     try {
       setIsLoading(true);
-      const result = await getCategories();
-      setCategories(result);
+      const result = await getMyDecks();
+      setDecks(result.items);
+      setDeckResponse(result);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error('Error loading decks:', error);
     } finally {
       setIsLoading(false);
     }
@@ -42,28 +44,28 @@ export default function ListScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      loadCategories();
+      loadDecks();
     }, [])
   );
 
-  const handleCategoryPress = (category: CategoryWithCount) => {
-    navigation.navigate('DeckDetails', { category });
+  const handleDeckPress = (deck: Deck) => {
+    navigation.navigate('DeckDetails', { deck });
   };
 
-  const handleStudyPress = (categoryId: string, categoryName: string, e: any) => {
+  const handleStudyPress = (deckId: number, deckName: string, e: any) => {
     e.stopPropagation();
-    navigation.navigate('Study', { categoryId, categoryName });
+    navigation.navigate('Study', { deckId, deckName });
   };
 
-  const renderCategoryCard = ({ item }: { item: CategoryWithCount }) => (
+  const renderDeckCard = ({ item }: { item: Deck }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => handleCategoryPress(item)}
+      onPress={() => handleDeckPress(item)}
     >
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.name}</Text>
         <Text style={styles.cardSubtitle}>
-          {item.flashcardCount} {item.flashcardCount === 1 ? 'card' : 'cards'}
+          {item.cardCount} {item.cardCount === 1 ? 'card' : 'cards'}
         </Text>
       </View>
       <TouchableOpacity
@@ -81,22 +83,22 @@ export default function ListScreen() {
         <View style={styles.emptyState}>
           <Ionicons name="folder-open-outline" size={64} color={theme.colors.primary} />
           <Text style={styles.emptyText}>
-            Carregando categorias...
+            Carregando decks...
           </Text>
         </View>
-      ) : categories.length === 0 ? (
+      ) : decks.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="folder-open-outline" size={64} color={theme.colors.primary} />
           <Text style={styles.emptyText}>
-            Nenhuma categoria encontrada.{'\n'}
-            Importe seus flashcards primeiro!
+            Nenhum deck encontrado.{'\n'}
+            Crie um novo deck para começar!
           </Text>
         </View>
       ) : (
         <FlatList
-          data={categories}
-          renderItem={renderCategoryCard}
-          keyExtractor={item => item.id}
+          data={decks}
+          renderItem={renderDeckCard}
+          keyExtractor={item => item.id.toString()}
           contentContainerStyle={styles.list}
         />
       )}
